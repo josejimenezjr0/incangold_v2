@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useHistory } from 'react-router-dom'
-import { db } from '../db'
-import OpponentsList from './game/opponents/OpponentsList'
-import LobbyWait from './game/opponents/LobbyWait'
+import { db2 } from '../db'
+// import OpponentsList from './game/opponents/OpponentsList'
+// import LobbyWait from './game/opponents/LobbyWait'
 
 // const Nav = ({ show, navGame }) => {
 const Nav = () => {
@@ -15,15 +15,27 @@ const Nav = () => {
     }
   }
 
+  // const clearGame = async () => {
+  //   console.log('inside Nav cleargame');
+  //   const clearGame = await db.game.clear()
+  //   console.log('clearGame: ', clearGame);
+  //   const clearUuid = db.uuid.clear()
+  //   console.log('clearUuid: ', clearUuid);
+  //   const clearPlayer = db.player.clear()
+  //   console.log('clearPlayer: ', clearPlayer);
+  //   history.push('/')
+  // }
+
   const clearGame = async () => {
-    console.log('inside Nav cleargame');
-    const clearGame = await db.game.clear()
-    console.log('clearGame: ', clearGame);
-    const clearUuid = db.uuid.clear()
-    console.log('clearUuid: ', clearUuid);
-    const clearPlayer = db.player.clear()
-    console.log('clearPlayer: ', clearPlayer);
-    history.push('/')
+    console.log('Nav cleargame');
+    try {
+      await db2.init.clear()
+      await db2.game.clear()
+      await db2.player.clear()
+      history.push('/')
+    } catch (error) {
+      console.log('error: ', error);
+    }
   }
 
   useEffect(()=> {

@@ -4,3 +4,4 @@ frontend/build
 frontend/.eslintcache
 frontend_old
 .env
+docker-compose.yml

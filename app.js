@@ -6,6 +6,7 @@ const path = require('path')
 const app = express()
 const server = require('http').createServer(app)
 const socketServer = require('./socketServer')
+const router = require('./routes/router')
 
 let games = []
 
@@ -14,16 +15,7 @@ const setGames = gamesArray => games = gamesArray
 app.use(bodyParser.json())
 app.use(cors())
 app.use(express.static(path.join(__dirname, '/frontend/build')))
-
-app.get('/games', (req, res) => {
-  res.send(games)
-})
-
-app.post('/checkjoin', (req, res) => {
-  console.log('req.body.room.toUpperCase(): ', req.body.room.toUpperCase());
-  const found = games.filter(game => game.room === req.body.room.toUpperCase())
-  res.status(200).send(!(games.length === 0 || found.length === 0))
-})
+app.use(router)
 
 app.get('/*', (req, res) => res.sendFile(path.join(__dirname, '/frontend/build', 'index.html')))
 

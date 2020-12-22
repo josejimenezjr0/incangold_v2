@@ -11,27 +11,27 @@ const Home = () => {
   /**
    * checks local dexieDB for a saved game and redirects to Lobby componenet if there is a saved game
    */
-  const checkDB = async () => {
-    try {
-      const storedUuid = await db.table('uuid').toArray()
-      const storedGame = await db.table('game').toArray()
-      const storedPlayer = await db.table('player').toArray()
-      if(storedUuid[0] && storedGame[0] && storedPlayer[0]) {
-        history.push({ pathname:'/lobby', state: { uuid: storedUuid[0].uuid, player: storedPlayer[0], game: storedGame[0]} })
-      } else {
-        console.log('Missing some or all info, starting new');
-      }
-    } catch (error) {
-      console.log('error: ', error);
-    } 
-  }
+  // const checkDB = async () => {
+  //   try {
+  //     const storedUuid = await db.table('uuid').toArray()
+  //     const storedGame = await db.table('game').toArray()
+  //     const storedPlayer = await db.table('player').toArray()
+  //     if(storedUuid[0] && storedGame[0] && storedPlayer[0]) {
+  //       history.push({ pathname:'/lobby', state: { uuid: storedUuid[0].uuid, player: storedPlayer[0], game: storedGame[0]} })
+  //     } else {
+  //       console.log('Missing some or all info, starting new');
+  //     }
+  //   } catch (error) {
+  //     console.log('error: ', error);
+  //   } 
+  // }
 
-  useEffect(() => {
-    checkDB()
-  }, [])
+  // useEffect(() => {
+  //   checkDB()
+  // }, [])
 
   const history = useHistory()
-  const [ game, setGame ] = useState({ name: '', code: '', size: '', init: true, join: false })
+  // const [ game, setGame ] = useState({ name: '', code: '', size: '', init: true, join: false })
   const [ makeJoinInfo, setMakeJoinInfo ] = useState({ name: '', code: '', size: '', init: true, join: false })
   const [joinInfo, setJoinInfo] = useState({ found: true, checking: false })
 
@@ -40,7 +40,7 @@ const Home = () => {
    */
   const handleInput = e => {
     const { target: { name, value } } = e
-    setGame(({ ...game, [name]: value }))
+    // setGame(({ ...game, [name]: value }))
     setMakeJoinInfo(prev => ({ ...prev, [name]: value }))
   }
 
@@ -52,7 +52,7 @@ const Home = () => {
     try {
       const res = await axios.post('http://localhost:4001/checkjoin', { room })
       setJoinInfo(prev => ({ ...prev, found: res.data, checking: false }))
-      if(res.data) history.push({ pathname: "/lobby", state: { game: game } })
+      // if(res.data) history.push({ pathname: "/lobby", state: { game: game } })
       //////////////////////////////////
       //change to use context/reducer
       //////////////////////////////////
@@ -64,9 +64,16 @@ const Home = () => {
   /**
    * Pushed to Lobby component with game passed in state
    */
-  const makeGame = () => {
+  const makeGame = async () => {
     dispatch(actionGenerators.makeJoin(makeJoinInfo))
-    history.push({ pathname: "/lobby", state: { game: game } })
+    try {
+      const res = await axios.post('http://localhost:4001/makejoin', { makeJoinInfo })
+      console.log('res.data: ', res.data);
+      setJoinInfo(prev => ({ ...prev, found: res.data, checking: false }))
+      dispatch(actionGenerators.newGame(res))
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   /**
@@ -76,17 +83,17 @@ const Home = () => {
   const toggleJoin = e => {
     //reset any searching for a room UI if the user toggles between making or joining
     setJoinInfo(prev => ({ ...prev, found: true, checking: false }))
-    setGame({ ...game, join: e.target.name === 'join' })
+    // setGame({ ...game, join: e.target.name === 'join' })
     setMakeJoinInfo(prev => ({ ...prev, join: e.target.name === 'join' }))
   }
 
   //verify all necessary fields are not empty in order to enable Make or Join button
-  const allInfo = (game.join || makeJoinInfo.join) ?
+  const allInfo = makeJoinInfo.join ?
     //if joining instead of making make sure name and code are filled
-    (game.name === '' || makeJoinInfo.name === '') || (game.code === '' || makeJoinInfo.code === '')
+    makeJoinInfo.name === '' || makeJoinInfo.code === ''
     :
     //otherwise make sure name and number of players is filled. Number of players should only be a number.
-    (game.name === '' || makeJoinInfo.name === '') || ((isNaN(game.size) || isNaN(makeJoinInfo.size)) || (game.size === '' || makeJoinInfo.size === ''))
+    makeJoinInfo.name === '' || isNaN(makeJoinInfo.size) || makeJoinInfo.size <= 1
 
   return (
     <div className="flex justify-center">
@@ -98,7 +105,7 @@ const Home = () => {
               <button
                 name="new"
                 onClick={ toggleJoin }
-                className={`${ !(game.join && makeJoinInfo.join) ? 'bg-blue-400 cursor-default' : 'text-blue-500 hover:bg-blue-200 hover:text-blue-900 focus:shadow-outline'} text-gray-900 tracking-wide font-bold py-2 px-4 rounded focus:outline-none`}
+                className={`${ !makeJoinInfo.join ? 'bg-blue-400 cursor-default' : 'text-blue-500 hover:bg-blue-200 hover:text-blue-900 focus:shadow-outline'} text-gray-900 tracking-wide font-bold py-2 px-4 rounded focus:outline-none`}
               >
                 New
               </button>
@@ -108,7 +115,7 @@ const Home = () => {
               <button 
                 name="join"
                 onClick={ toggleJoin }
-                className={`${ (game.join && makeJoinInfo.join) ? 'bg-blue-400 cursor-default' : 'text-blue-500 hover:bg-blue-200 hover:text-blue-900 focus:shadow-outline'} text-gray-900 tracking-wide font-bold py-2 px-4 rounded focus:outline-none`} 
+                className={`${ makeJoinInfo.join ? 'bg-blue-400 cursor-default' : 'text-blue-500 hover:bg-blue-200 hover:text-blue-900 focus:shadow-outline'} text-gray-900 tracking-wide font-bold py-2 px-4 rounded focus:outline-none`} 
               >
                 Join
               </button>
@@ -120,7 +127,7 @@ const Home = () => {
               <p className="block text-gray-700 font-bold mb-2">Name</p>
               <input
                 name="name"
-                value={ game.name }
+                value={ makeJoinInfo.name }
                 onChange={ handleInput }
                 type="text" 
                 placeholder="enter name"
@@ -130,12 +137,12 @@ const Home = () => {
             {/* Number of players(size) or code text field */}
             <div className="mb-4">
               {/* game.join toggles based on new or join buttons */}
-              <p className="block text-gray-700 font-bold mb-2">{ (game.join && makeJoinInfo.join) ? 'Code' : 'Players' }</p>
+              <p className="block text-gray-700 font-bold mb-2">{ makeJoinInfo.join ? 'Code' : 'Players' }</p>
               { 
-                (game.join && makeJoinInfo.join) ?
+                makeJoinInfo.join ?
                 <input
                   name="code"
-                  value={ game.code }
+                  value={ makeJoinInfo.code }
                   onChange={ handleInput }
                   type="text"
                   placeholder="enter code"
@@ -144,7 +151,7 @@ const Home = () => {
                 :
                 <input
                   name="size"
-                  value={ game.size }
+                  value={ makeJoinInfo.size }
                   onChange={ handleInput }
                   type="text"
                   placeholder="3 - 8 players"
@@ -155,9 +162,9 @@ const Home = () => {
             <div className="flex items-center justify-center">
             {/* Make or Join buttons are disabled and greyed out if all required fields aren't filled */}
             { 
-              (game.join && makeJoinInfo.join) ? 
+              makeJoinInfo.join ? 
               <button
-                onClick={ () => checkJoin(game.code) }
+                onClick={ () => checkJoin(makeJoinInfo.code) }
                 disabled={ allInfo }
                 className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${allInfo && 'opacity-50' }`}
               >
