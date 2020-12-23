@@ -29,9 +29,7 @@ const Nav = () => {
   const clearGame = async () => {
     console.log('Nav cleargame');
     try {
-      await db2.init.clear()
-      await db2.game.clear()
-      await db2.player.clear()
+      await db2.localSave.clear()
       history.push('/')
     } catch (error) {
       console.log('error: ', error);

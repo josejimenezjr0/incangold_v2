@@ -1,10 +1,5 @@
-const { makeGame, makePlayer, makeDeck } = require('../lib/gameAssets')
-const { 
-  insertGame,
-  insertDeck,
-  insertHazardTracker,
-  insertPlayer
-  } = require('../pg/queries')
+const { makeGame, makePlayer } = require('../lib/gameAssets')
+const { insertGame, insertPlayer } = require('../pg/queries')
 
 const makeJoin = async makeJoinInfo => {
   const { name, code, size, init, join } = makeJoinInfo
@@ -12,21 +7,12 @@ const makeJoin = async makeJoinInfo => {
   if(!join) {
     try {
       const storedGame = await insertGame(makeGame(size))
-      const { game_uuid, player_order } = storedGame
-
-      const storedDeck = await insertDeck(makeDeck(game_uuid))
-
-      const storedHazardTracker = await insertHazardTracker(game_uuid)
+      const { game_uuid, player_order, room } = storedGame
 
       const storedPlayer = await insertPlayer(makePlayer(game_uuid, name, player_order, !join))
       const { player_uuid } = storedPlayer
       
-      return { 
-        storedGame,
-        storedDeck,
-        storedHazardTracker,
-        storedPlayer
-      }
+      return { room, playerUuid: player_uuid }
     } catch (error) {
       console.log('error: ', error);
       return error

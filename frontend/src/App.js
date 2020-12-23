@@ -5,7 +5,7 @@ import Home from './components/Home'
 import Admin from './components/Admin'
 import Lobby from './components/Lobby'
 import { db2 } from './db'
-import { reducer, initialState } from './redux'
+import { reducer, initialState, reducerAsyncMiddleware } from './redux'
 
 export const GameContext = createContext()
 
@@ -17,22 +17,11 @@ const App = () => {
    */
   const checkDB = async () => {
     try {
-      const init = await db2.init.toArray()
-      if(init[0]) {
-        console.log('init: ', init);
+      const localSave = await db2.localSave.toArray()
+      if(localSave[0]) {
+        console.log('localSave: ', localSave);
       } else {
-        console.log('No init in db2');
-      }
-    } catch (error) {
-      console.log('error: ', error);
-    }
-    try {
-      const game = await db2.game.toArray()
-      if(game[0]) {
-        console.log('game: ', game);
-        dispatch()
-      } else {
-        console.log('No game in db2');
+        console.log('No localSave in db2');
       }
     } catch (error) {
       console.log('error: ', error);
@@ -44,7 +33,7 @@ const App = () => {
   }, [state])
 
   return (
-    <GameContext.Provider value={ { state, dispatch } }>
+    <GameContext.Provider value={ { state, dispatch: reducerAsyncMiddleware(dispatch) } }>
       <Router>
         <Nav />
         <Switch>

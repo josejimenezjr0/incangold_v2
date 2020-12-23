@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS games;
 CREATE TABLE games (
   game_uuid uuid DEFAULT uuid_generate_v4 () PRIMARY KEY,
   room VARCHAR(255) NOT NULL,
+  deck JSONB NOT NULL,
   size INT NOT NULL CHECK (size > 0),
   player_order INT NOT NULL DEFAULT 1,
   round INT NOT NULL DEFAULT 0,
@@ -31,37 +32,4 @@ CREATE TABLE players (
   choice VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE deck (
-  card_id SERIAL PRIMARY KEY,
-  game_uuid uuid,
-  value int,
-  type VARCHAR(255),
-  on_board BOOLEAN DEFAULT false,
-  placement int
-);
-
-CREATE TABLE hazards (
-  hazards_id SERIAL PRIMARY KEY,
-  game_uuid uuid,
-  rocks int NOT NULL DEFAULT 0,
-  snakes int NOT NULL DEFAULT 0,
-  monster int NOT NULL DEFAULT 0,
-  fire int NOT NULL DEFAULT 0,
-  spiders int NOT NULL DEFAULT 0
-);
-
-CREATE TABLE player_artifacts (
-  artifact_id SERIAL PRIMARY KEY,
-  card_id int,
-  player_uuid uuid
-);
-
 ALTER TABLE "players" ADD FOREIGN KEY ("game_uuid") REFERENCES "games" ("game_uuid");
-
-ALTER TABLE "deck" ADD FOREIGN KEY ("game_uuid") REFERENCES "games" ("game_uuid");
-
-ALTER TABLE "hazards" ADD FOREIGN KEY ("game_uuid") REFERENCES "games" ("game_uuid");
-
-ALTER TABLE "player_artifacts" ADD FOREIGN KEY ("card_id") REFERENCES "deck" ("card_id");
-
-ALTER TABLE "player_artifacts" ADD FOREIGN KEY ("player_uuid") REFERENCES "players" ("player_uuid");

@@ -8,10 +8,6 @@ const REVEAL = 'reveal'
 const FLIP = 'flip'
 
 module.exports = (server, games, setGames, httpServer) => {
-  httpServer.post('/games', (req, res) => {
-    deleteGame(req.body.room)
-    res.send(games)
-  })
 
   /**
    * If player empty OR players doesn't have uuid

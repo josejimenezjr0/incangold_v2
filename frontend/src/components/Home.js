@@ -8,6 +8,7 @@ import { actionGenerators } from '../redux'
 
 const Home = () => {
   const { state, dispatch } = useContext(GameContext)
+  // console.log('state: ', state);
   /**
    * checks local dexieDB for a saved game and redirects to Lobby componenet if there is a saved game
    */
@@ -32,7 +33,7 @@ const Home = () => {
 
   const history = useHistory()
   // const [ game, setGame ] = useState({ name: '', code: '', size: '', init: true, join: false })
-  const [ makeJoinInfo, setMakeJoinInfo ] = useState({ name: '', code: '', size: '', init: true, join: false })
+  const [ makeJoinInfo, setMakeJoinInfo ] = useState({ id: 1, name: '', code: '', size: '', init: true, join: false })
   const [joinInfo, setJoinInfo] = useState({ found: true, checking: false })
 
   /**
@@ -68,9 +69,8 @@ const Home = () => {
     dispatch(actionGenerators.makeJoin(makeJoinInfo))
     try {
       const res = await axios.post('http://localhost:4001/makejoin', { makeJoinInfo })
-      console.log('res.data: ', res.data);
       setJoinInfo(prev => ({ ...prev, found: res.data, checking: false }))
-      dispatch(actionGenerators.newGame(res))
+      dispatch(actionGenerators.playerUuid(res.data.playerUuid))
     } catch (error) {
       console.log(error)
     }
