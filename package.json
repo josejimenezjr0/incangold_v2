@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "dev": "nodemon app.js"
+    "dev": "nodemon --ignore 'frontend/' -- exec app.js"
   },
   "keywords": [],
   "author": "",

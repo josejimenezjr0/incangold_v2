@@ -7,6 +7,7 @@ import TempleBoard from './game/center/TempleBoard'
 import PlayerBoard from './game/player/PlayerBoard'
 import OpponentsList from './game/opponents/OpponentsList'
 import { GameContext } from '../App'
+import { actionGenerators } from '../redux'
 
 const ZERO = 'zero'
 const TORCH = 'Torch'
@@ -14,9 +15,20 @@ const CAMP = 'Camp'
 
 // const Lobby = ({ getNavGame }) => {
 const Lobby = () => {
-  const { state } = useContext(GameContext)
-  const location = useLocation()
+  const { state, dispatch } = useContext(GameContext)
   const history = useHistory()
+
+  useEffect(() => {
+    console.log(' check refresh state: ', state);
+    if (state.refresh) {
+      console.log('redirecting');
+      history.push('/')
+      return
+    }
+  }, [])
+
+  const [open, setOpen] = useState(true)
+  const location = useLocation()
   //State passed from Home component history
   const locationUuid = location.state && location.state.uuid
   //State passed from Home component history
@@ -71,6 +83,11 @@ const Lobby = () => {
     }  
   }
 
+  const testUpdatePlayer = update => {
+    console.log('lobby testUpdatePlayer: ', update);
+    dispatch(actionGenerators.updateSave(update))
+  }
+
   /**
    * receives uuid, sets uuid state to uuid and saves uuid to dexieDB
    */
@@ -103,8 +120,11 @@ const Lobby = () => {
         io.playerUpdate(update => updatePlayer(update))
       } else {
         console.log('Missing some or all info, starting new')
-        io.playerInit(locationGame, locationUuid)
-        io.playerUuid(uuid => saveUuid(uuid))
+        // io.playerInit(locationGame, locationUuid)
+        io.playerInit(state.init, state.playerUuid, state.room)
+        io.testUpdate()
+        io.testPlayerUpdate(testUpdate => testUpdatePlayer(testUpdate))
+        // io.playerUuid(uuid => saveUuid(uuid))
         io.gameUpdate(update => updateGame(update))
         io.playerUpdate(update => updatePlayer(update))
       }
@@ -112,6 +132,8 @@ const Lobby = () => {
       console.log('error: ', error);
     } 
   }
+
+  const disconnectSocket = () => io.disconnect()
 
   /**
    * erases data from dexieDB and redirects to App component
@@ -127,8 +149,19 @@ const Lobby = () => {
    * Try to load any saved data. SocketIO startup functions with saved data. Also clear any saved game state in socketIO
    */
   useEffect(() => {
-    console.log('useReducer state', state);
-    loadSave()
+    if (!state.refresh) {
+      console.log('starting io');
+      io.playerInit(state.init, state.playerUuid, state.room)
+      io.sendTest(state.playerUuid)
+      io.testUpdate()
+      io.testPlayerUpdate(testUpdate => testUpdatePlayer(testUpdate))
+      // io.playerUuid(uuid => saveUuid(uuid))
+      io.gameUpdate(update => updateGame(update))
+      io.playerUpdate(update => updatePlayer(update))
+
+      //disconnect socket on unmount
+      return () => io.disconnect()
+    }
     ///////////
     //Async issue? loadSave but io starts right away?
     ///////////
@@ -137,8 +170,6 @@ const Lobby = () => {
     // io.gameUpdate(update => updateGame(update))
     // io.playerUpdate(update => updatePlayer(update))
     // io.gameReset(clearGame)
-    //disconnect socket on unmount
-    return () => io.disconnect()
 
   }, [])
 
@@ -194,17 +225,30 @@ const Lobby = () => {
   //Possibly check if game has started and not rely on sizeWait if so
   ///////////
   const sizeWait = lobby.players.length === lobby.size
+  const currentState = Object.entries(state).map(([key, value]) => <li key={key}>{`${key}: ${value}`}</li>)
 
   return (
     <div className="flex justify-center h-screen sm:h-auto">
       <div className="w-full max-w-sm mt-4 h-full sm:h-auto">
         <div className="bg-gray-100 shadow-md rounded px-8 pt-6 pb-8 mb-4 h-full sm:h-auto">
           <div className="flex flex-col pt-2 pb-16 h-full sm:h-auto">
+            <div>
+              <button type="button" onClick={() => setOpen(!open)}>state</button>
+              <ul className={`${open && 'hidden'}`}>
+                { currentState }
+              </ul>
+            </div>
+            <button 
+              onClick={ disconnectSocket }
+              className="bg-gray-600 text-white tracking-wide font-semibold py-1 px-2 ml-2 rounded"
+            >
+              disconnect
+            </button>
             {/* Hide game if not all players are present. reference sizeWait comment above for possible change */}
             <div className={`${sizeWait && 'hidden'} flex justify-between items-center bg-blue-200 text-gray-900 rounded-lg mt-2 px-4`}>
               <div className="flex p-2 items-center justify-center">
                 {/* show game code for other players to join */}
-                Code: <span className="bg-gray-600 text-white tracking-wide font-semibold py-1 px-2 ml-2 rounded">{ lobby.room }</span>
+                Room: <span className="bg-gray-600 text-white tracking-wide font-semibold py-1 px-2 ml-2 rounded">{ state.room }</span>
               </div>
               <div className="font-semibold underline">{ `Players (${lobby.players.length}/${lobby.size})`}</div>
             </div>

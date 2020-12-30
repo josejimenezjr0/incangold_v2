@@ -1,7 +1,8 @@
 const socketio = require('socket.io')
 const { v4: uuidv4 } = require('uuid')
 const chalk = require('chalk')
-const { makePlayer_Game, hideInfo, playerInfo, startTurn, startRound, revealChoices } = require('./lib/gameAssets')
+const { makePlayer_Game, hideInfo, playerInfo, startTurn, startRound, revealChoices, playerToRoom } = require('./lib/gameAssets')
+const { selectPlayer, selectGameWithPlayer, updatePlayer } = require('./pg/queries')
 const ZERO = 'zero'
 const WAIT = 'wait'
 const REVEAL = 'reveal'
@@ -12,9 +13,15 @@ module.exports = (server, games, setGames, httpServer) => {
   /**
    * If player empty OR players doesn't have uuid
    */
-  const clientCheck = (filter, value) => {
-    const found = games.map(game => game.players).flat().filter(player => player[filter] == value)
-    const result = games.length === 0 || found.length === 0
+  // const clientCheck = (filter, value) => {
+  //   const found = games.map(game => game.players).flat().filter(player => player[filter] == value)
+  //   const result = games.length === 0 || found.length === 0
+  //   return result
+  // }
+
+  const clientCheck = async (filter, value) => {
+    const result = await selectPlayer(filter, value)
+    console.log('clientCheck result: ', result);
     return result
   }
 
@@ -30,7 +37,11 @@ module.exports = (server, games, setGames, httpServer) => {
   // })
 
   const io = socketio(server, {
-    transports: ['websocket']
+    // transports: ['websocket'],
+    cors: {
+      origin: "http://localhost:3001",
+      methods: ["GET", "POST"]
+  }
   })
 
   const updateGames = (update, room) => {
@@ -53,16 +64,24 @@ module.exports = (server, games, setGames, httpServer) => {
    * sets reset flag otherwise checks if client is returning and attaches uuid.
    */
   const checkServerClient = () => {
-    return (socket, next) => {
-      const uuid = socket.handshake.query.reconnect
-      if(uuid) {
-        console.log('uuid: ', uuid);
-        if(clientCheck('uuid', uuid)) {
+    return async (socket, next) => {
+      console.log('middleware socket.id: ', socket.id);
+      const playerUuid = socket.handshake.query.reconnect
+      if(playerUuid) {
+        console.log('playerUuid: ', playerUuid);
+        // if(clientCheck('uuid', uuid)) {
+        // const dbCheck = await clientCheck('playerUuid', uuid)
+        const dbCheck = await selectGameWithPlayer('playerUuid', playerUuid)
+        const { room } = dbCheck
+        playerToRoom(playerUuid, room, socket, io)
+        // if(dbCheck.playerUuid !== uuid) {
+        if(!dbCheck) {
+          console.log('no results on dbCheck');
           socket.reset = true
           return next()
         }
-        console.log(chalk.yellow(`${ chalk.bgYellow.black.bold(` ${ uuid.substring(0, 4) } `) } reconnected`))
-        socket.uuid = uuid
+        console.log(chalk.yellow(`${ chalk.bgYellow.black.bold(` ${ playerUuid.substring(0, 4) } `) } reconnected`))
+        socket.uuid = playerUuid
         return next()
       } else return next();
     }
@@ -83,24 +102,27 @@ module.exports = (server, games, setGames, httpServer) => {
 
     // Returning player socketID updated. Player rejoins saved game and online status is updated.
     if(uuid) {
+      console.log('if on connect uuid: ', uuid);
       //TODO
       // if(players[uuid].timer) {
       //   console.log('clearing timer')
       //   clearTimeout(players[uuid].timer)
       //   }
-      const [currentGame] = games.filter(game => game.players.some(player => player.uuid == uuid))
-      const [currentPlayer] = currentGame.players.filter(player => player.uuid == uuid)
-      const { room } = currentGame
 
-      const playerUpdate = { ...currentPlayer, socketID: id, online: true }
-      const keepPlayers = currentGame.players.filter(player => player.uuid !== uuid)
-      const gameUpdate = { ...currentGame, players: [...keepPlayers, playerUpdate] }
-
-      socket.join(room)
-      io.to(room).emit("update", hideInfo(gameUpdate))
       
-      updateGames(gameUpdate, room)
-      console.log(chalk.green(`${chalk.bgGreen.black.bold(` ${uuid.substring(0,4)} `)} returned to room: ${chalk.bgGreen.black.bold(` ${room} `)}`))
+      // const [currentGame] = games.filter(game => game.players.some(player => player.uuid == uuid))
+      // const [currentPlayer] = currentGame.players.filter(player => player.uuid == uuid)
+      // const { room } = currentGame
+
+      // const playerUpdate = { ...currentPlayer, socketID: id, online: true }
+      // const keepPlayers = currentGame.players.filter(player => player.uuid !== uuid)
+      // const gameUpdate = { ...currentGame, players: [...keepPlayers, playerUpdate] }
+
+      // socket.join(room)
+      // io.to(room).emit("update", hideInfo(gameUpdate))
+      
+      // updateGames(gameUpdate, room)
+      // console.log(chalk.green(`${chalk.bgGreen.black.bold(` ${uuid.substring(0,4)} `)} returned to room: ${chalk.bgGreen.black.bold(` ${room} `)}`))
     }
 
     
@@ -132,6 +154,25 @@ module.exports = (server, games, setGames, httpServer) => {
         updateGames(gameUpdate, room)
         console.log(chalk`{bgGreen.black.bold  ${uuid.substring(0,4)} }{green  created and game room: }{bgGreen.black.bold  ${room} } was created`)
       }
+    })
+
+    socket.on("reconnectTest", (playerUuid) => {
+      console.log('reconnectTest playerUuid: ', playerUuid);
+      console.log('socket.id', socket.id);
+    })
+
+    socket.on("init", ({ playerUuid, room }) => {
+      console.log('room: ', room);
+      console.log('playerUuid: ', playerUuid);
+
+      playerToRoom(playerUuid, room, socket, io)
+      
+      // socket.join(room)
+      // io.to(room).emit("update", hideInfo(gameUpdate))
+      // socket.emit("playerUpdate", playerInfo(gameUpdate, uuid))
+
+      // updateGames(gameUpdate, room)
+      // console.log(chalk`{bgGreen.black.bold  ${uuid.substring(0,4)} }{green  created and game room: }{bgGreen.black.bold  ${room} } was created`)
     })
 
     // Updates game with player choice selection and sends update to other players in the game
@@ -253,21 +294,36 @@ module.exports = (server, games, setGames, httpServer) => {
     })
 
     //Sets disconnected player to offline status and sends status to remaining players in game
-    socket.on("disconnect", () => {
-      if(clientCheck('socketID', socket.id)) return
-      const [currentGame] = games.filter(game => game.players.some(player => player.socketID == socket.id))
-      const [currentPlayer] = currentGame.players.filter(player => player.socketID == socket.id)
-      const { room } = currentGame
-      const { uuid } = currentPlayer
+    socket.on("disconnect", async () => {
+      console.log('disconnect');
+      // if(clientCheck('socketID', socket.id)) return
+      const { playerUuid } = await selectPlayer('socket_id', socket.id)
+      if(playerUuid) {
+        await updatePlayer(playerUuid, { online: false })
+      }
+      
+      // const [currentGame] = games.filter(game => game.players.some(player => player.socketID == socket.id))
+      // const [currentPlayer] = currentGame.players.filter(player => player.socketID == socket.id)
+      // const { room } = currentGame
+      // const { uuid } = currentPlayer
 
-      const playerUpdate = { ...currentPlayer, online: false }
-      const keepPlayers = currentGame.players.filter(player => player.uuid !== uuid)
-      const gameUpdate = { ...currentGame, players: [...keepPlayers, playerUpdate] }
+      // const playerUpdate = { ...currentPlayer, online: false }
+      // const keepPlayers = currentGame.players.filter(player => player.uuid !== uuid)
+      // const gameUpdate = { ...currentGame, players: [...keepPlayers, playerUpdate] }
 
-      io.to(room).emit("update", hideInfo(gameUpdate))
+      // io.to(room).emit("update", hideInfo(gameUpdate))
 
-      updateGames(gameUpdate, room)
-      console.log(chalk.red.bold(`${chalk.bgRed.black.bold(` ${uuid.substring(0, 4)} `)} disconnected from room: ${chalk.bgRed.black.bold(` ${room} `)}`))
+      // updateGames(gameUpdate, room)
+
+
+
+
+      // console.log(chalk.red.bold(`${chalk.bgRed.black.bold(` ${uuid.substring(0, 4)} `)} disconnected from room: ${chalk.bgRed.black.bold(` ${room} `)}`))
+      
+      
+      
+      
+      
       ///TODO
       // players[uuid].timer = setTimeout(() => {
       //   games[room].players[uuid].online = false

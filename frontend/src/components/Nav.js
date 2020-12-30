@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { Link, useHistory } from 'react-router-dom'
 import { db2 } from '../db'
+import { GameContext } from '../App'
+import { actionGenerators } from '../redux'
 // import OpponentsList from './game/opponents/OpponentsList'
 // import LobbyWait from './game/opponents/LobbyWait'
 
 // const Nav = ({ show, navGame }) => {
 const Nav = () => {
+  const { state, dispatch } = useContext(GameContext)
   const history = useHistory()
   const [open, setOpen] = useState(false)
 
@@ -27,10 +30,10 @@ const Nav = () => {
   // }
 
   const clearGame = async () => {
-    console.log('Nav cleargame');
     try {
-      await db2.localSave.clear()
+      console.log('Nav cleargame');
       history.push('/')
+      dispatch(actionGenerators.resetGame())
     } catch (error) {
       console.log('error: ', error);
     }

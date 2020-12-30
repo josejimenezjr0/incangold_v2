@@ -7,12 +7,12 @@ const makeJoin = async makeJoinInfo => {
   if(!join) {
     try {
       const storedGame = await insertGame(makeGame(size))
-      const { game_uuid, player_order, room } = storedGame
+      const { gameUuid, playerOrder, room } = storedGame
 
-      const storedPlayer = await insertPlayer(makePlayer(game_uuid, name, player_order, !join))
-      const { player_uuid } = storedPlayer
+      const storedPlayer = await insertPlayer(makePlayer(gameUuid, name, playerOrder, !join))
+      const { playerUuid } = storedPlayer
       
-      return { room, playerUuid: player_uuid }
+      return { room, playerUuid: playerUuid }
     } catch (error) {
       console.log('error: ', error);
       return error
