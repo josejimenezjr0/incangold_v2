@@ -31,7 +31,6 @@ const playerInit = (init, uuid, room) => {
     //   transports: ['websockets']
     // })
     socket = io(`http://localhost:4001?reconnect=${uuid}`)
-    socket.emit('reconnectTest', uuid)
   }
 }
 
@@ -44,7 +43,6 @@ const testUpdate = () => {
   console.log('running?');
   socket.on('testUpdate', testUpdate => {
     console.log('testUpdate: ', testUpdate);
-    console.log(`testUpdate`)
   })
 }
 

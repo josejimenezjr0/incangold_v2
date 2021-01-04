@@ -36,9 +36,22 @@ const insertPlayer = async prePlayer => {
 //   return rows
 // }
 
+const updateGame = async (game_uuid, preUpdate) => {
+  const update = objCamelToSnake(preUpdate)
+  console.log(`queries updateGame ${game_uuid} w/ update: ${JSON.stringify(update)}`);
+  const [rows] = await db('games')
+    .where({ game_uuid })
+    .update(update)
+    // .toSQL()
+    // .toNative())
+    .returning("*")
+
+  return objSnakeToCamel(rows)
+}
+
 const updatePlayer = async (player_uuid, preUpdate) => {
   const update = objCamelToSnake(preUpdate)
-  console.log('queries updatePlayer w/ update: ', update);
+  console.log(`queries updatePlayer ${player_uuid} w/ update: ${JSON.stringify(update)}`);
   const [rows] = await db('players')
     .where({ player_uuid })
     .update(update)
@@ -46,6 +59,19 @@ const updatePlayer = async (player_uuid, preUpdate) => {
     // .toNative())
     .returning("*")
 
+  return objSnakeToCamel(rows)
+}
+
+const selectGame = async (preFilter, value) => {
+  const filter = camelToSnake(preFilter)
+  console.log(`queries selectGame w/ filter: ${filter}, value: ${value}`);
+  const [rows] = await db('games')
+    .where({ [filter]: value })
+    // .toSQL()
+    // .toNative())
+    .returning("*")
+
+  // console.log('rows: ', rows);
   return objSnakeToCamel(rows)
 }
 
@@ -60,6 +86,19 @@ const selectPlayer = async (preFilter, value) => {
 
   // console.log('rows: ', rows);
   return objSnakeToCamel(rows)
+}
+
+const selectAllPlayers = async (preFilter, value) => {
+  const filter = camelToSnake(preFilter)
+  console.log(`queries selectAllPlayers w/ filter: ${filter}, value: ${value}`);
+  const rows = await db('players')
+    .where({ [filter]: value })
+    // .toSQL()
+    // .toNative())
+    .returning("*")
+
+  // console.log('rows: ', rows);
+  return rows.map(row => objSnakeToCamel(row))
 }
 
 const selectOpponents = async (game_uuid, player_uuid) => {
@@ -98,5 +137,8 @@ module.exports = {
   updatePlayer,
   selectPlayer,
   selectGameWithPlayer,
-  selectOpponents
+  selectOpponents,
+  selectGame,
+  selectAllPlayers,
+  updateGame
 }

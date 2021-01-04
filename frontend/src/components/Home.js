@@ -17,7 +17,7 @@ const Home = () => {
 
   useEffect(() => {
     console.log('Home useEffect state: ', state);
-    state.room !== '' && history.push('/lobby')
+    state.playerUuid !== '' && history.push('/lobby')
   }, [state])
 
   const [ makeJoinInfo, setMakeJoinInfo ] = useState({ id: 1, name: '', room: '', size: '', init: true, join: false })
@@ -55,7 +55,7 @@ const Home = () => {
   const makeGame = async () => {
     dispatch(actionGenerators.makeJoin(makeJoinInfo))
     try {
-      const res = await axios.post('http://localhost:4001/makejoin', { makeJoinInfo })
+      const res = await axios.post('http://localhost:4001/players', { makeJoinInfo })
       console.log('res.data: ', res.data);
       // dispatch(actionGenerators.playerUuid(res.data.playerUuid))
       dispatch(actionGenerators.updateSave(res.data))
@@ -154,7 +154,8 @@ const Home = () => {
               { 
                 makeJoinInfo.join ? 
                 <button
-                  onClick={ () => checkJoin(makeJoinInfo.room) }
+                  // onClick={ () => checkJoin(makeJoinInfo.room) }
+                  onClick={ makeGame }
                   disabled={ allInfo }
                   className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${allInfo && 'opacity-50' }`}
                 >

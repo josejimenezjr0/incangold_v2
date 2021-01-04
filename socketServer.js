@@ -8,7 +8,7 @@ const WAIT = 'wait'
 const REVEAL = 'reveal'
 const FLIP = 'flip'
 
-module.exports = (server, games, setGames, httpServer) => {
+module.exports = (io) => {
 
   /**
    * If player empty OR players doesn't have uuid
@@ -36,13 +36,12 @@ module.exports = (server, games, setGames, httpServer) => {
   //   res.send(!gameCheck('room', req.body.room.toUpperCase()))
   // })
 
-  const io = socketio(server, {
-    // transports: ['websocket'],
-    cors: {
-      origin: "http://localhost:3001",
-      methods: ["GET", "POST"]
-  }
-  })
+  // const io = socketio(server, {
+  //   cors: {
+  //     origin: "http://localhost:3001",
+  //     methods: ["GET", "POST"]
+  //   }
+  // })
 
   const updateGames = (update, room) => {
     const keepGames = games.filter(game => game.room !== room)
@@ -156,15 +155,7 @@ module.exports = (server, games, setGames, httpServer) => {
       }
     })
 
-    socket.on("reconnectTest", (playerUuid) => {
-      console.log('reconnectTest playerUuid: ', playerUuid);
-      console.log('socket.id', socket.id);
-    })
-
     socket.on("init", ({ playerUuid, room }) => {
-      console.log('room: ', room);
-      console.log('playerUuid: ', playerUuid);
-
       playerToRoom(playerUuid, room, socket, io)
       
       // socket.join(room)

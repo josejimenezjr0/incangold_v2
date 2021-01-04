@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useLocation, useHistory } from 'react-router-dom'
 import io from '../Socket'
+import axios from 'axios'
 import { db, db2 } from '../db'
 import CenterBoard from './game/center/CenterBoard'
 import TempleBoard from './game/center/TempleBoard'
@@ -16,6 +17,7 @@ const CAMP = 'Camp'
 // const Lobby = ({ getNavGame }) => {
 const Lobby = () => {
   const { state, dispatch } = useContext(GameContext)
+  const { choiceMade, playerUuid } = state
   const history = useHistory()
 
   useEffect(() => {
@@ -91,59 +93,59 @@ const Lobby = () => {
   /**
    * receives uuid, sets uuid state to uuid and saves uuid to dexieDB
    */
-  const saveUuid = async uuid => {
-    setUuid(uuid)
-    try {
-      await db.uuid.put({uuid: uuid})
-    } catch (error) {
-      console.log('error: ', error);
-    }  
-  }
+  // const saveUuid = async uuid => {
+  //   setUuid(uuid)
+  //   try {
+  //     await db.uuid.put({uuid: uuid})
+  //   } catch (error) {
+  //     console.log('error: ', error);
+  //   }  
+  // }
 
-  /**
-   * Checks dexieDB for saved player and game data. If found, sets it in local state.
-   */
-  const loadSave = async () => {
-    console.log('trying loadSave');
-    try {
-      const storedUuid = await db.table('uuid').toArray()
-      const storedGame = await db.table('game').toArray()
-      const storedPlayer = await db.table('player').toArray()
-      if(storedUuid[0] && storedGame[0] && storedPlayer[0]) {
-        console.log('now loading saved data');
-        setUuid(storedUuid[0].uuid)
-        setLobby(storedGame[0])
-        setPlayerInfo(storedPlayer[0])
-        io.playerInit(null, locationUuid)
-        io.playerUuid(uuid => saveUuid(uuid))
-        io.gameUpdate(update => updateGame(update))
-        io.playerUpdate(update => updatePlayer(update))
-      } else {
-        console.log('Missing some or all info, starting new')
-        // io.playerInit(locationGame, locationUuid)
-        io.playerInit(state.init, state.playerUuid, state.room)
-        io.testUpdate()
-        io.testPlayerUpdate(testUpdate => testUpdatePlayer(testUpdate))
-        // io.playerUuid(uuid => saveUuid(uuid))
-        io.gameUpdate(update => updateGame(update))
-        io.playerUpdate(update => updatePlayer(update))
-      }
-    } catch (error) {
-      console.log('error: ', error);
-    } 
-  }
+  // /**
+  //  * Checks dexieDB for saved player and game data. If found, sets it in local state.
+  //  */
+  // const loadSave = async () => {
+  //   console.log('trying loadSave');
+  //   try {
+  //     const storedUuid = await db.table('uuid').toArray()
+  //     const storedGame = await db.table('game').toArray()
+  //     const storedPlayer = await db.table('player').toArray()
+  //     if(storedUuid[0] && storedGame[0] && storedPlayer[0]) {
+  //       console.log('now loading saved data');
+  //       setUuid(storedUuid[0].uuid)
+  //       setLobby(storedGame[0])
+  //       setPlayerInfo(storedPlayer[0])
+  //       io.playerInit(null, locationUuid)
+  //       io.playerUuid(uuid => saveUuid(uuid))
+  //       io.gameUpdate(update => updateGame(update))
+  //       io.playerUpdate(update => updatePlayer(update))
+  //     } else {
+  //       console.log('Missing some or all info, starting new')
+  //       // io.playerInit(locationGame, locationUuid)
+  //       io.playerInit(state.init, state.playerUuid, state.room)
+  //       io.testUpdate()
+  //       io.testPlayerUpdate(testUpdate => testUpdatePlayer(testUpdate))
+  //       // io.playerUuid(uuid => saveUuid(uuid))
+  //       io.gameUpdate(update => updateGame(update))
+  //       io.playerUpdate(update => updatePlayer(update))
+  //     }
+  //   } catch (error) {
+  //     console.log('error: ', error);
+  //   } 
+  // }
 
   const disconnectSocket = () => io.disconnect()
 
   /**
    * erases data from dexieDB and redirects to App component
    */
-  const clearGame = async () => {
-    await db.game.clear()
-    await db.uuid.clear()
-    await db.player.clear()
-    history.push('/')
-  }
+  // const clearGame = async () => {
+  //   await db.game.clear()
+  //   await db.uuid.clear()
+  //   await db.player.clear()
+  //   history.push('/')
+  // }
   
   /**
    * Try to load any saved data. SocketIO startup functions with saved data. Also clear any saved game state in socketIO
@@ -156,8 +158,8 @@ const Lobby = () => {
       io.testUpdate()
       io.testPlayerUpdate(testUpdate => testUpdatePlayer(testUpdate))
       // io.playerUuid(uuid => saveUuid(uuid))
-      io.gameUpdate(update => updateGame(update))
-      io.playerUpdate(update => updatePlayer(update))
+      // io.gameUpdate(update => updateGame(update))
+      // io.playerUpdate(update => updatePlayer(update))
 
       //disconnect socket on unmount
       return () => io.disconnect()
@@ -176,12 +178,22 @@ const Lobby = () => {
   /**
    * Set flag for player having made a choice yet or not for Torch(stay) or Camp(leave)
    */
-  const playerChoice = () => {
+  const playerChoice = async () => {
     //if they've already chosen before, ignore and return
-    if(playerInfo.choiceMade === true) return
-    updatePlayer({ ...playerInfo, choiceMade: true })
+    // if(playerInfo.choiceMade === true) return
+    if(choiceMade === true) return
+    // updatePlayer({ ...playerInfo, choiceMade: true })
+    testUpdatePlayer({ choiceMade: true })
     //Send socket update with choice selection
-    io.sendChoice({ uuid: uuid, choice: playerInfo.choice })
+    // io.sendChoice({ uuid: uuid, choice: playerInfo.choice })
+    try {
+      const res = await axios.put(`http://localhost:4001/players/${playerUuid}`, { action: 'playerChoice', update: { choiceMade: true } })
+      console.log('res.data: ', res.data);
+      // dispatch(actionGenerators.playerUuid(res.data.playerUuid))
+      dispatch(actionGenerators.updateSave(res.data))
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   /**
