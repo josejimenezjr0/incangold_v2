@@ -237,7 +237,7 @@ const Lobby = () => {
   //Possibly check if game has started and not rely on sizeWait if so
   ///////////
   const sizeWait = lobby.players.length === lobby.size
-  const currentState = Object.entries(state).map(([key, value]) => <li key={key}>{`${key}: ${value}`}</li>)
+  const currentState = Object.entries(state).map(([key, value]) => <li key={key}>{`${key}: ${JSON.stringify(value)}`}</li>)
 
   return (
     <div className="flex justify-center h-screen sm:h-auto">

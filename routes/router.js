@@ -1,11 +1,13 @@
 const express = require('express')
 const router = new express.Router()
 const db = require('../pg/db')
-const { makeJoin, playerAction } = require('../controllers')
+const { makeJoin, playerAction, gameAction } = require('../controllers')
 
 router.post('/players', makeJoin)
 
 router.put('/players/:playerUuid', playerAction)
+
+router.put('/games/:playerUuid', gameAction)
 
 router.get('/games', (req, res) => {
   // res.send(games)

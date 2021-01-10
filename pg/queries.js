@@ -36,9 +36,12 @@ const insertPlayer = async prePlayer => {
 //   return rows
 // }
 
-const updateGame = async (game_uuid, preUpdate) => {
-  const update = objCamelToSnake(preUpdate)
-  console.log(`queries updateGame ${game_uuid} w/ update: ${JSON.stringify(update)}`);
+const updateGame = async (game_uuid, _rawUpdate) => {
+  const rawUpdate = objCamelToSnake(_rawUpdate)
+  const { deck, ...preUpdate } = rawUpdate
+  const update = {...preUpdate, ...(deck && { deck: JSON.stringify(deck) }) }
+  // console.log(`queries updateGame ${game_uuid} w/ update: ${JSON.stringify(update)}`);
+  console.log(`queries updateGame`);
   const [rows] = await db('games')
     .where({ game_uuid })
     .update(update)
@@ -51,7 +54,8 @@ const updateGame = async (game_uuid, preUpdate) => {
 
 const updatePlayer = async (player_uuid, preUpdate) => {
   const update = objCamelToSnake(preUpdate)
-  console.log(`queries updatePlayer ${player_uuid} w/ update: ${JSON.stringify(update)}`);
+  // console.log(`queries updatePlayer ${player_uuid} w/ update: ${JSON.stringify(update)}`);
+  console.log(`queries updatePlayer`);
   const [rows] = await db('players')
     .where({ player_uuid })
     .update(update)
@@ -62,9 +66,34 @@ const updatePlayer = async (player_uuid, preUpdate) => {
   return objSnakeToCamel(rows)
 }
 
+const updateManyPlayers = async (preUpdate) => {
+  console.log('updateManyPlayers');
+  const update = preUpdate.map(item => objCamelToSnake(item))
+  await Promise.all(update.map(async player => {
+    await db('players')
+    .where({ player_uuid: player.player_uuid })
+    .update(player)
+  }))
+  // try {
+  //   await db.transaction(async trx => {
+  //     Promise.all(update.map(
+  //       async player => {
+  //         await trx('players')
+  //         .where({ player_uuid: player.player_uuid })
+  //         .update(player)
+  //       }
+  //     ))
+  //   }) 
+  //   console.log('updateAllPlayers - result: ', result);
+  // } catch (error) {
+  //   console.log('DB error: ', error);
+  // }
+}
+
 const selectGame = async (preFilter, value) => {
   const filter = camelToSnake(preFilter)
-  console.log(`queries selectGame w/ filter: ${filter}, value: ${value}`);
+  // console.log(`queries selectGame w/ filter: ${filter}, value: ${value}`);
+  console.log(`queries selectGame`);
   const [rows] = await db('games')
     .where({ [filter]: value })
     // .toSQL()
@@ -77,7 +106,8 @@ const selectGame = async (preFilter, value) => {
 
 const selectPlayer = async (preFilter, value) => {
   const filter = camelToSnake(preFilter)
-  console.log(`queries selectPlayer w/ filter: ${filter}, value: ${value}`);
+  // console.log(`queries selectPlayer w/ filter: ${filter}, value: ${value}`);
+  console.log(`queries selectPlayer`);
   const [rows] = await db('players')
     .where({ [filter]: value })
     // .toSQL()
@@ -90,7 +120,8 @@ const selectPlayer = async (preFilter, value) => {
 
 const selectAllPlayers = async (preFilter, value) => {
   const filter = camelToSnake(preFilter)
-  console.log(`queries selectAllPlayers w/ filter: ${filter}, value: ${value}`);
+  // console.log(`queries selectAllPlayers w/ filter: ${filter}, value: ${value}`);
+  console.log(`queries selectAllPlayers`);
   const rows = await db('players')
     .where({ [filter]: value })
     // .toSQL()
@@ -102,9 +133,10 @@ const selectAllPlayers = async (preFilter, value) => {
 }
 
 const selectOpponents = async (game_uuid, player_uuid) => {
-  console.log(`queries selectOpponents w/ game_uuid: ${game_uuid}, player_uuid: ${player_uuid}`);
+  // console.log(`queries selectOpponents w/ game_uuid: ${game_uuid}, player_uuid: ${player_uuid}`);
+  console.log(`queries selectOpponents`);
   const rows = await db('players')
-    .select('player_uuid', 'name', 'choice', 'choice_made', 'online', 'round_score')
+    .select('player_uuid', 'name', 'choice', 'choice_made', 'online', 'round_score', 'left_round')
     .where({ game_uuid })
     .andWhere('player_uuid', '!=', `${player_uuid}`)
     // .toSQL()
@@ -116,7 +148,8 @@ const selectOpponents = async (game_uuid, player_uuid) => {
 
 const selectGameWithPlayer = async (preFilter, value) => {
   const filter = camelToSnake(preFilter)
-  console.log(`queries selectGameWithPlayer w/ filter: ${filter}, value: ${value}`);
+  // console.log(`queries selectGameWithPlayer w/ filter: ${filter}, value: ${value}`);
+  console.log(`queries selectGameWithPlayer`);
   const [rows] = await db('games')
     // .select('room')
     .where('game_uuid', '=', 
@@ -140,5 +173,6 @@ module.exports = {
   selectOpponents,
   selectGame,
   selectAllPlayers,
-  updateGame
+  updateGame,
+  updateManyPlayers
 }

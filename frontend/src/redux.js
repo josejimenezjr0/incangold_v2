@@ -31,6 +31,7 @@ export const initialState =
     totalScore: 0,
     roundScore: 0,
     playerArtifacts: [],
+    leftRound: false,
     choiceMade: false,
     choice: TORCH
   }
