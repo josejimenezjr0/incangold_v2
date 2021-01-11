@@ -1,6 +1,5 @@
 const express = require('express')
 const router = new express.Router()
-const db = require('../pg/db')
 const { makeJoin, playerAction, gameAction } = require('../controllers')
 
 router.post('/players', makeJoin)
