@@ -8,7 +8,8 @@ const actionList = [
   'LOAD_GAME',
   'PLAYER_UUID',
   'UPDATE_SAVE',
-  'RESET_GAME'
+  'RESET_GAME',
+  'DB_SAVE'
 ]
 
 export const initialState = 
@@ -22,7 +23,7 @@ export const initialState =
     join: false,
     name: '',
     playerUuid: '',
-    players: [],
+    opponents: [],
     questCycle: ZERO,
     round: 0,
     quest: [],
@@ -42,7 +43,8 @@ export const actionGenerators = {
   loadGame: () => ({ type: actions.LOAD_GAME }),
   playerUuid: uuid => ({ type: actions.PLAYER_UUID, payload: uuid }),
   updateSave: update => ({ type: actions.UPDATE_SAVE, payload: update }),
-  resetGame: () => ({ type: actions.RESET_GAME })
+  resetGame: () => ({ type: actions.RESET_GAME }),
+  dbSave: update => ({ type: actions.DB_SAVE, payload: update }),
 }
 
 
@@ -50,8 +52,30 @@ const handlers = {
   [actions.MAKE_JOIN]: (state, { payload }) => ({ ...state, ...payload }),
   [actions.LOAD_GAME]: (state, { payload }) => ({ ...state, ...payload, refresh: false, checkSave: true }),
   [actions.PLAYER_UUID]: (state, { payload }) => ({ ...state, playerUuid: payload }),
-  [actions.UPDATE_SAVE]: (state, { payload }) => ({ ...state, ...payload }),
-  [actions.RESET_GAME]: () => initialState
+  [actions.UPDATE_SAVE]: (state, { dispatch, payload }) => {
+    const { opponents, ...restPayload } = payload
+    if(opponents && state.opponents.length !== 0) {
+      const opponentsMerge = [...state.opponents, ...opponents].reduce((acc, cur) => {
+        if(acc[cur.playerUuid]) {
+          return { ...acc, [cur.playerUuid]: { ...acc[cur.playerUuid], ...cur } }
+        } else return { ...acc, [cur.playerUuid]: cur }
+      }, {})
+      // console.log('opponentsMerge: ', opponentsMerge);
+
+      const opponentsUpdate = Object.entries(opponentsMerge).map(([_, value]) => value)
+
+      // console.log('UPDATE_SAVE - opponentsUpdate: ', opponentsUpdate);
+      const finalUpdate = { ...state, ...restPayload, opponents: opponentsUpdate }
+      console.log('UPDATE_SAVE - finalUpdate: ', finalUpdate);
+      asyncHandlers.DB_SAVE(finalUpdate)
+      return finalUpdate
+    }
+    const defaultFinalUpdate = { ...state, ...payload }
+    console.log('defaultFinalUpdate: ', defaultFinalUpdate);
+    asyncHandlers.DB_SAVE(defaultFinalUpdate)
+    return defaultFinalUpdate
+  },
+  [actions.RESET_GAME]: () => initialState,
 }
 
 const asyncHandlers = {
@@ -83,22 +107,32 @@ const asyncHandlers = {
     await db2.localSave.update(1, { playerUuid: action.payload })
     return dispatch(action)
   },
-  [actions.UPDATE_SAVE]: async (action, dispatch) => {
-    await db2.localSave.update(1, action.payload)
-    return dispatch(action)
-  },
+  // [actions.UPDATE_SAVE]: async (action, dispatch) => {
+  //   console.log('async UPDATE_SAVE');
+  //   // await db2.localSave.update(1, action.payload)
+  //   const updatedAction = { ...action, dispatch }
+  //   console.log('async UPDATE_SAVE - updatedAction: ', updatedAction);
+  //   return dispatch(updatedAction)
+  // },
   [actions.RESET_GAME]: async (action, dispatch) => {
     await db2.localSave.clear()
     return dispatch(action)
-  }
+  },
+  [actions.DB_SAVE]: async (payload) => {
+    console.log('async DB_SAVE - payload: ', payload);
+    await db2.localSave.update(1, payload)
+    return
+  },
 }
 
 export const reducerAsyncMiddleware = dispatch => {
   return action => {
+    console.log('reducerAsyncMiddleware - action: ', action);
     return asyncHandlers.hasOwnProperty(action.type) ? asyncHandlers[action.type](action, dispatch) : dispatch(action)
   }
 }
 
 export const reducer = (state = initialState, action) => {
+  console.log('reducer - action: ', action);
   return handlers.hasOwnProperty(action.type) ? handlers[action.type](state, action) : state
 }

@@ -54,8 +54,8 @@ const updateGame = async (game_uuid, _rawUpdate) => {
 
 const updatePlayer = async (player_uuid, preUpdate) => {
   const update = objCamelToSnake(preUpdate)
-  // console.log(`queries updatePlayer ${player_uuid} w/ update: ${JSON.stringify(update)}`);
-  console.log(`queries updatePlayer`);
+  console.log(`queries updatePlayer ${player_uuid} w/ update: ${JSON.stringify(update)}`);
+  // console.log(`queries updatePlayer`);
   const [rows] = await db('players')
     .where({ player_uuid })
     .update(update)
@@ -106,8 +106,8 @@ const selectGame = async (preFilter, value) => {
 
 const selectPlayer = async (preFilter, value) => {
   const filter = camelToSnake(preFilter)
-  // console.log(`queries selectPlayer w/ filter: ${filter}, value: ${value}`);
-  console.log(`queries selectPlayer`);
+  console.log(`queries selectPlayer w/ filter: ${filter}, value: ${value}`);
+  // console.log(`queries selectPlayer`);
   const [rows] = await db('players')
     .where({ [filter]: value })
     // .toSQL()

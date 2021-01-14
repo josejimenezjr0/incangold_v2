@@ -15,9 +15,14 @@ const socket = require('./app');
 const makeJoin = async (req, res) => {
   const { name, room: code, size, join } = req.body.makeJoinInfo
   try {
-    const { gameUuid, room } = !join ? await insertGame(makeGame(size)) : await selectGame('room', code.toUpperCase())
+    const { gameUuid } = !join ? await insertGame(makeGame(size)) : await selectGame('room', code.toUpperCase())
     const { playerUuid } = await insertPlayer(makePlayer(gameUuid, name, !join))
-    return res.status(200).send({ room, playerUuid })
+
+    const { playerUpdate, opponentsUpdate, gameUpdate } = await handlePlayerAction(playerUuid, actions.playerToRoom)
+    console.log('makeJoin - opponentsUpdate: ', opponentsUpdate);
+    opponentsUpdate.sockets.map(opponent => socket.ioObj.to(opponent).emit("testPlayerUpdate", { ...gameUpdate, opponents: opponentsUpdate.update }))
+
+    return res.status(200).send({ ...gameUpdate, ...playerUpdate })
   } catch (error) {
     console.log('error: ', error);
     return res.status(500).send(error)
@@ -25,15 +30,15 @@ const makeJoin = async (req, res) => {
   }
 }
 
-const handlePlayerAction = async (playerUuid, update, action) => {
+const handlePlayerAction = async (playerUuid, action, update) => {
   console.log(`handlePlayerAction - playerUuid: ${playerUuid}, update: ${JSON.stringify(update)}`);
 
   const game = await selectGameWithPlayer('playerUuid', playerUuid)
   const allPlayers = await selectAllPlayers('gameUuid', game.gameUuid)
-  const { playerUpdate, opponentsUpdate, gameUpdate } = action(game, allPlayers, playerUuid, update)
+  const { playerUpdate, opponentsUpdate, gameUpdate, makeJoin } = action(game, allPlayers, playerUuid, update)
 
-  await updatePlayer(playerUuid, playerUpdate)
-  await updateGame(game.gameUuid, gameUpdate)
+  !makeJoin && await updatePlayer(playerUuid, playerUpdate)
+  gameUpdate && await updateGame(game.gameUuid, gameUpdate)
 
   return { playerUpdate, opponentsUpdate, gameUpdate }
 }
@@ -56,8 +61,8 @@ const playerAction = async (req, res) => {
   const { action, update } = req.body
 
   try {
-    const { playerUpdate, opponentsUpdate, gameUpdate } = await handlePlayerAction(playerUuid, update, actions[action])
-    opponentsUpdate.sockets.map(opponent => socket.ioObj.to(opponent).emit("testUpdate", { ...gameUpdate, opponents: opponentsUpdate.update }))
+    const { playerUpdate, opponentsUpdate, gameUpdate } = await handlePlayerAction(playerUuid, actions[action], update)
+    opponentsUpdate.sockets.map(opponent => socket.ioObj.to(opponent).emit("testPlayerUpdate", { ...gameUpdate, opponents: opponentsUpdate.update }))
 
     return res.status(200).send({ ...gameUpdate, ...playerUpdate })
   } catch (error) {
@@ -73,10 +78,11 @@ const gameAction = async (req, res) => {
   try {
     const { playersViewEmit } = await handleGameAction(playerUuid, actions[action])
     playersViewEmit.map(player => {
+      console.log('playersViewEmit.map(player: ');
       console.dir(player, { depth: null });
-      socket.ioObj.to(player.socketId).emit("testUpdate", player.update)
+      socket.ioObj.to(player.socketId).emit("testPlayerUpdate", player.update)
     })
-    
+
     return res.status(200).send('ok')
   } catch (error) {
     console.log('error: ', error);
@@ -87,5 +93,6 @@ const gameAction = async (req, res) => {
 module.exports = {
   makeJoin,
   playerAction,
-  gameAction
+  gameAction,
+  handlePlayerAction
 }

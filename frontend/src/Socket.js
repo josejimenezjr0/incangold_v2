@@ -1,112 +1,31 @@
 import io from 'socket.io-client'
 let socket
 
-// const playerInit = (game, uuid) => {
-//   console.log('player init game: ', game);
-//   if(game.init) {
-//     console.log('if(game.init)');
-//     socket = io('http://localhost:4001', {
-//       transports: ['websocket']
-//     })
-//     socket.emit('create', game)
-//   } else {
-//     console.log(`reconnect from playerInit with uuid: ${uuid}`);
-//     socket = io(`http://localhost:4001?reconnect=${uuid}`, {
-//       transports: ['websockets']
-//     })
-//   }
-// }
-
-const playerInit = (init, uuid, room) => {
+export const playerInit = (init, playerUuid) => {
   if(init) {
     console.log('if(init)');
-    // socket = io('http://localhost:4001', {
-    //   transports: ['websocket']
-    // })
-    socket = io('http://localhost:4001')
-    socket.emit('init', { playerUuid:uuid, room })
+    socket = io(`http://localhost:4001?playerUuid=${playerUuid}&init=${init}`)
   } else {
-    console.log(`reconnect from playerInit with uuid: ${uuid}`);
-    // socket = io(`http://localhost:4001?reconnect=${uuid}`, {
-    //   transports: ['websockets']
-    // })
-    socket = io(`http://localhost:4001?reconnect=${uuid}`)
+    console.log(`reconnect from playerInit with uuid: ${playerUuid}`);
+    socket = io(`http://localhost:4001?playerUuid=${playerUuid}`)
   }
 }
 
-const sendTest = test => {
-  console.log(`sendTest`, test)
-  socket.emit('reconnectTest', test)
-}
-
-const testUpdate = () => {
-  console.log('running?');
-  socket.on('testUpdate', testUpdate => {
-    console.log('testUpdate: ', testUpdate);
-  })
-}
-
-const testPlayerUpdate = handlePlayerUpdate => {
+export const testPlayerUpdate = handlePlayerUpdate => {
   socket.on('testPlayerUpdate', testPlayerUpdate => {
-    console.log('testPlayerUpdate: ', testPlayerUpdate);
+    // console.log('testPlayerUpdate: ', testPlayerUpdate);
     handlePlayerUpdate(testPlayerUpdate)
   })
 }
 
-const gameUpdate = handleUpdate => {
-  socket.on('update', update => {
-    console.log(`gameUpdate`)
-    handleUpdate(update)
-  })
-}
-
-const playerUuid = uuidSet => {
-  socket.on('uuid', uuid => {
-    console.log('uuid')
-    uuidSet(uuid)
-  }) 
-}
-
-const playerUpdate = handlePlayerUpdate => {
-  socket.on('playerUpdate', update => {
-    console.log(`playerUpdate`)
-    handlePlayerUpdate(update)
-  })
-}
-
-const sendChoice = choice => {
-  console.log(`sendChoice`, choice)
-  socket.emit('choice', choice)
-}
-
-const choiceToggle = choiceData => {
-  console.log(`choiceToggle - choiceData:`, choiceData)
-  socket.emit('toggleChoice', choiceData)
-}
-
-const startRound = room => {
-  console.log('startRound');
-  socket.emit('startRound', room)
-}
-
-const revealChoices = room => {
-  console.log('revealChoices');
-  socket.emit('revealChoices', room)
-}
-
-const startTurn = room => {
-  console.log('startTurn')
-  socket.emit('startTurn', room)
-}
-
-const gameReset = resetGame => {
+export const gameReset = resetGame => {
   socket.on('forceReset', () => {
     console.log('gameReset')
     resetGame()
   })
 }
 
-const disconnect = () => {
+export const disconnect = () => {
   console.log('disconnect');
   socket.disconnect()
   socket = null
@@ -114,17 +33,7 @@ const disconnect = () => {
 
 export default {
   playerInit,
-  gameUpdate,
-  playerUuid,
-  disconnect,
-  gameReset,
-  playerUpdate,
-  sendChoice,
-  startRound,
-  revealChoices,
-  startTurn,
-  choiceToggle,
   testPlayerUpdate,
-  testUpdate,
-  sendTest
+  gameReset,
+  disconnect
 }

@@ -1,55 +1,51 @@
 const chalk = require('chalk')
-const { playerToRoom } = require('./lib/gameAssets')
 const { selectPlayer, selectGameWithPlayer, updatePlayer } = require('./pg/queries')
+const { actions: { playerToRoom, playerDisconnect, playerReconnect } } = require('./lib/gameAssets')
+const { handlePlayerAction } = require('./controllers')
 
 module.exports = (io) => {
-  /**
-   * Socket middleware - Check for reconnect flag and if the server has been restarted (players empty or no client uuid)
-   * sets reset flag otherwise checks if client is returning and attaches uuid.
-   */
-  const checkServerClient = () => {
-    return async (socket, next) => {
-      const playerUuid = socket.handshake.query.reconnect
-      if(playerUuid) {
-        const dbCheck = await selectGameWithPlayer('playerUuid', playerUuid)
-        const { room } = dbCheck
-        playerToRoom(playerUuid, room, socket, io)
-        if(!dbCheck) {
-          console.log('no results on dbCheck');
-          socket.reset = true
-          return next()
-        }
+  io.on("connect", async socket => {
+    const { playerUuid, init } = socket.handshake.query
+    try {
+      const { opponentsUpdate } = await handlePlayerAction(playerUuid, playerReconnect, { socketId: socket.id })
+      console.log('opponentsUpdate: ', opponentsUpdate);
+      opponentsUpdate.sockets.map(({ socketId }) => io.to(socketId).emit("testPlayerUpdate", { opponents: opponentsUpdate.update }))
+      console.log(chalk.yellow(`${ chalk.bgYellow.black.bold(` ${ playerUuid.substring(0, 4) } `) } reconnected with socket: ${socket.id}`))
+    } catch(error) {
+      console.log('error: ', error);
+
+    }
+    if(init) {
+      try {
+        const { playerUpdate, opponentsUpdate, gameUpdate } = await handlePlayerAction(playerUuid, playerToRoom)
+        opponentsUpdate.sockets.map(({ socketId }) => io.to(socketId).emit("testPlayerUpdate", { ...gameUpdate, opponents: opponentsUpdate.update }))
+        socket.emit('testPlayerUpdate', { ...gameUpdate, ...playerUpdate })
         console.log(chalk.yellow(`${ chalk.bgYellow.black.bold(` ${ playerUuid.substring(0, 4) } `) } reconnected`))
-        socket.uuid = playerUuid
-        return next()
-      } else return next();
-    }
-  }
-
-  io.use(checkServerClient())
-
-  io.on("connect", socket => {
-    const { reset } = socket
-
-    // If client needs to be reset emits a force reset command to client socket and stops
-    if(reset) {
-      console.log('forceReset');
-      socket.emit('forceReset')
-      return
-    }
-
-    socket.on("init", ({ playerUuid, room }) => {
-      playerToRoom(playerUuid, room, socket, io)
-    })
+      } catch (error) {
+        console.log('error: ', error);
+      }
+    } 
+    // else {
+    //   // If client needs to be reset emits a force reset command to client socket and stops
+    //   console.log('forceReset');
+    //   socket.emit('forceReset')
+    //   return
+    // }
 
     //Sets disconnected player to offline status and sends status to remaining players in game
     socket.on("disconnect", async () => {
-      console.log('disconnect');
-      const { playerUuid } = await selectPlayer('socket_id', socket.id)
+      console.log('disconnect - socket.id: ', socket.id);
+      const { playerUuid } = await selectPlayer('socketId', socket.id)
+      console.log(`Disconnect - PlayerUuid: ${playerUuid}, Socket: ${socket.id}`)
       if(playerUuid) {
-        await updatePlayer(playerUuid, { online: false })
-        console.log(chalk.red.bold(`${chalk.bgRed.black.bold(` ${playerUuid.substring(0, 4)} `)} disconnected`))
-        // console.log(chalk.red.bold(`${chalk.bgRed.black.bold(` ${playerUuid.substring(0, 4)} `)} disconnected from room: ${chalk.bgRed.black.bold(` ${room} `)}`))
+        try {
+          const { opponentsUpdate } = await handlePlayerAction(playerUuid, playerDisconnect)
+          console.log('opponentsUpdate: ', opponentsUpdate);
+          opponentsUpdate.sockets.map(({ socketId }) => io.to(socketId).emit("testPlayerUpdate", { opponents: opponentsUpdate.update }))
+          console.log(chalk.red.bold(`${chalk.bgRed.black.bold(` ${playerUuid.substring(0, 4)} `)} disconnected`))
+        } catch (error) {
+          console.log('error: ', error);
+        }
       }
     })
   })

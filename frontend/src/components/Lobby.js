@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
-import { useLocation, useHistory } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
 import io from '../Socket'
 import axios from 'axios'
-import { db, db2 } from '../db'
 import CenterBoard from './game/center/CenterBoard'
 import TempleBoard from './game/center/TempleBoard'
 import PlayerBoard from './game/player/PlayerBoard'
@@ -10,14 +9,9 @@ import OpponentsList from './game/opponents/OpponentsList'
 import { GameContext } from '../App'
 import { actionGenerators } from '../redux'
 
-const ZERO = 'zero'
-const TORCH = 'Torch'
-const CAMP = 'Camp'
-
-// const Lobby = ({ getNavGame }) => {
 const Lobby = () => {
   const { state, dispatch } = useContext(GameContext)
-  const { choiceMade, playerUuid } = state
+  const { choiceMade, playerUuid, choice, opponents, size, round, questCycle, onePlayer } = state
   const history = useHistory()
 
   useEffect(() => {
@@ -30,122 +24,14 @@ const Lobby = () => {
   }, [])
 
   const [open, setOpen] = useState(true)
-  const location = useLocation()
-  //State passed from Home component history
-  const locationUuid = location.state && location.state.uuid
-  //State passed from Home component history
-  const locationGame = location.state && location.state.game
-  const [uuid, setUuid] = useState(null)
-  const [lobby, setLobby] = useState(
-    { 
-      room: '',
-      players: [],
-      size: 3,
-      questCycle: ZERO,
-      round: 0,
-      quest: [],
-      deck: [] 
-    })
-  const [playerInfo, setPlayerInfo] = useState(
-    {
-      name: '',
-      host: false,
-      totalScore: 0,
-      roundScore: 0,
-      playerArtifacts: [],
-      choiceMade: false,
-      choice: 'Torch'
-    })
-  
-  /**
-   * receives game object, sets lobby state to game object and saves game object to dexieDB
-   */
-  const updateGame = async game => {
-    console.log('updateGame: ', game);
-    setLobby(game)
-    // getNavGame({ players: game.players.filter(player => player.uuid !== uuid), questCycle: game.questCycle, onePlayer: game.onePlayer, size: game.size })
-    try {
-      await db.game.put(game)
-      // await db2.savedData.put(game)
-    } catch (error) {
-      console.log('error: ', error);
-    }  
-  }
-
-  /**
-   * receives player object, sets playerinfo state to player object and saves player object to dexieDB
-   */
-  const updatePlayer = async player => {
-    console.log('updatePlayer: ', player);
-    setPlayerInfo(player)
-    try {
-      await db.player.put(player, uuid)
-    } catch (error) {
-      console.log('error: ', error);
-    }  
-  }
 
   const testUpdatePlayer = update => {
     console.log('lobby testUpdatePlayer: ', update);
     dispatch(actionGenerators.updateSave(update))
   }
 
-  /**
-   * receives uuid, sets uuid state to uuid and saves uuid to dexieDB
-   */
-  // const saveUuid = async uuid => {
-  //   setUuid(uuid)
-  //   try {
-  //     await db.uuid.put({uuid: uuid})
-  //   } catch (error) {
-  //     console.log('error: ', error);
-  //   }  
-  // }
-
-  // /**
-  //  * Checks dexieDB for saved player and game data. If found, sets it in local state.
-  //  */
-  // const loadSave = async () => {
-  //   console.log('trying loadSave');
-  //   try {
-  //     const storedUuid = await db.table('uuid').toArray()
-  //     const storedGame = await db.table('game').toArray()
-  //     const storedPlayer = await db.table('player').toArray()
-  //     if(storedUuid[0] && storedGame[0] && storedPlayer[0]) {
-  //       console.log('now loading saved data');
-  //       setUuid(storedUuid[0].uuid)
-  //       setLobby(storedGame[0])
-  //       setPlayerInfo(storedPlayer[0])
-  //       io.playerInit(null, locationUuid)
-  //       io.playerUuid(uuid => saveUuid(uuid))
-  //       io.gameUpdate(update => updateGame(update))
-  //       io.playerUpdate(update => updatePlayer(update))
-  //     } else {
-  //       console.log('Missing some or all info, starting new')
-  //       // io.playerInit(locationGame, locationUuid)
-  //       io.playerInit(state.init, state.playerUuid, state.room)
-  //       io.testUpdate()
-  //       io.testPlayerUpdate(testUpdate => testUpdatePlayer(testUpdate))
-  //       // io.playerUuid(uuid => saveUuid(uuid))
-  //       io.gameUpdate(update => updateGame(update))
-  //       io.playerUpdate(update => updatePlayer(update))
-  //     }
-  //   } catch (error) {
-  //     console.log('error: ', error);
-  //   } 
-  // }
-
   const disconnectSocket = () => io.disconnect()
 
-  /**
-   * erases data from dexieDB and redirects to App component
-   */
-  // const clearGame = async () => {
-  //   await db.game.clear()
-  //   await db.uuid.clear()
-  //   await db.player.clear()
-  //   history.push('/')
-  // }
   
   /**
    * Try to load any saved data. SocketIO startup functions with saved data. Also clear any saved game state in socketIO
@@ -153,81 +39,87 @@ const Lobby = () => {
   useEffect(() => {
     if (!state.refresh) {
       console.log('starting io');
-      io.playerInit(state.init, state.playerUuid, state.room)
-      io.sendTest(state.playerUuid)
-      io.testUpdate()
-      io.testPlayerUpdate(testUpdate => testUpdatePlayer(testUpdate))
-      // io.playerUuid(uuid => saveUuid(uuid))
-      // io.gameUpdate(update => updateGame(update))
-      // io.playerUpdate(update => updatePlayer(update))
-
-      //disconnect socket on unmount
+      io.playerInit(state.init, state.playerUuid)
+      io.testPlayerUpdate(testPlayerUpdate => testUpdatePlayer(testPlayerUpdate))
       return () => io.disconnect()
     }
-    ///////////
-    //Async issue? loadSave but io starts right away?
-    ///////////
-    // io.playerInit(locationGame, locationUuid)
-    // io.playerUuid(uuid => saveUuid(uuid))
-    // io.gameUpdate(update => updateGame(update))
-    // io.playerUpdate(update => updatePlayer(update))
-    // io.gameReset(clearGame)
-
   }, [])
 
   /**
    * Set flag for player having made a choice yet or not for Torch(stay) or Camp(leave)
    */
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// should be moved
   const playerChoice = async () => {
-    //if they've already chosen before, ignore and return
-    // if(playerInfo.choiceMade === true) return
     if(choiceMade === true) return
-    // updatePlayer({ ...playerInfo, choiceMade: true })
-    testUpdatePlayer({ choiceMade: true })
-    //Send socket update with choice selection
-    // io.sendChoice({ uuid: uuid, choice: playerInfo.choice })
+    // testUpdatePlayer({ choiceMade: true })
     try {
-      const res = await axios.put(`http://localhost:4001/players/${playerUuid}`, { action: 'playerChoice', update: { choiceMade: true } })
+      const res = await axios.put(`http://localhost:4001/players/${playerUuid}`, { action: 'playerChoice', update: { choice } })
       console.log('res.data: ', res.data);
-      // dispatch(actionGenerators.playerUuid(res.data.playerUuid))
       dispatch(actionGenerators.updateSave(res.data))
     } catch (error) {
       console.log(error)
     }
   }
 
-  /**
+    /**
    * Change between Torch or Camp selection
    */
-  const toggleChoice = () => {
-    console.log('playerInfo.choice: ', playerInfo.choice);
-    console.log('boolean for choice: ', playerInfo.choice === TORCH ? CAMP : TORCH);
-    //clear choiceMade flag and toggle previous choice
-    updatePlayer({ ...playerInfo, choice: playerInfo.choice === TORCH ? CAMP : TORCH, choiceMade: false })
-    console.log('playerInfo.choice: ', playerInfo.choice);
-    //send socket update with new choice
-    io.choiceToggle({ uuid: uuid, choice: playerInfo.choice === TORCH ? CAMP : TORCH })
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// should be moved and should probably be combined with playerChoice
+  const toggleChoice = async () => {
+    try {
+      const res = await axios.put(`http://localhost:4001/players/${playerUuid}`, { action: 'toggleChoice' })
+      console.log('res.data: ', res.data);
+      dispatch(actionGenerators.updateSave(res.data))
+    } catch (error) {
+      console.log(error)
+    }
   }
 
-  const roundStart = () => io.startRound(lobby.room)
-  const choicesReveal = () => io.revealChoices(lobby.room)
-  ///////////
-  //different parameter?
-  ///////////
-  const turnStart = () => io.startTurn({ room: lobby.room })
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// should be moved and should probably be combined with turnStart and choicesReveal
+  const roundStart = async () => {
+    try {
+      const res = await axios.put(`http://localhost:4001/games/${playerUuid}`, { action: 'startRound' })
+      console.log('res.data: ', res.data);
+      // dispatch(actionGenerators.updateSave(res.data))
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// should be moved and should probably be combined with turnStart and choicesReveal
+  const turnStart = async () => {
+    try {
+      const res = await axios.put(`http://localhost:4001/games/${playerUuid}`, { action: 'startTurn' })
+      console.log('res.data: ', res.data);
+      dispatch(actionGenerators.updateSave(res.data))
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// should be moved and should probably be combined with turnStart and choicesReveal
+  const choicesReveal = async () => {
+    try {
+      const res = await axios.put(`http://localhost:4001/games/${playerUuid}`, { action: 'revealChoices' })
+      console.log('res.data: ', res.data);
+      dispatch(actionGenerators.updateSave(res.data))
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   //determine player list in lobby
 
   //remove self from player list
-  const otherPlayers = lobby.players.filter(player => player.uuid !== uuid)
+  // const otherPlayers = lobby.players.filter(player => player.uuid !== uuid)
   //make Opponent list
-  const gamePlayers = otherPlayers.map((player, ind) => {
+  // const gamePlayers = otherPlayers.map((player, ind) => {
+  const gamePlayers = opponents.map((player, ind) => {
     return (
       <OpponentsList 
         key={ ind }
         player={ player }
-        questCycle={ lobby.questCycle }
-        onePlayer={ lobby.onePlayer }
       />)
     })
 
@@ -236,7 +128,7 @@ const Lobby = () => {
   //May need to fix for players dropping but coming back in
   //Possibly check if game has started and not rely on sizeWait if so
   ///////////
-  const sizeWait = lobby.players.length === lobby.size
+  const sizeWait = opponents.length === size - 1
   const currentState = Object.entries(state).map(([key, value]) => <li key={key}>{`${key}: ${JSON.stringify(value)}`}</li>)
 
   return (
@@ -262,13 +154,17 @@ const Lobby = () => {
                 {/* show game code for other players to join */}
                 Room: <span className="bg-gray-600 text-white tracking-wide font-semibold py-1 px-2 ml-2 rounded">{ state.room }</span>
               </div>
-              <div className="font-semibold underline">{ `Players (${lobby.players.length}/${lobby.size})`}</div>
+              {/* <div className="font-semibold underline">{ `Players (${lobby.players.length}/${lobby.size})`}</div> */}
+              <div className="font-semibold underline">{ `Players (${opponents.length + 1}/${size})`}</div>
+            </div>
+            <div>
+              { gamePlayers }
             </div>
             {/* Temple layout for round progress */}
             <TempleBoard
               roundStart={ roundStart } 
-              round={ lobby.round } 
-              questCycle={ lobby.questCycle } 
+              round={ round } 
+              questCycle={ questCycle } 
               sizeWait={ sizeWait }
             />
             <div className="flex h-full">
@@ -276,16 +172,13 @@ const Lobby = () => {
               <PlayerBoard 
                 playerChoice={ playerChoice }
                 toggleChoice={ toggleChoice }
-                player={ playerInfo }
-                questCycle={ lobby.questCycle }
-                onePlayer={ lobby.onePlayer }
+                questCycle={ questCycle }
+                onePlayer={ onePlayer }
               />
               {/* Turn progress section with current turn cards and treasures */}
               <CenterBoard
                 choicesReveal={ choicesReveal }
                 turnStart={ turnStart }
-                game={ lobby }
-                playerInfo={ playerInfo }
               />
             </div>
           </div>

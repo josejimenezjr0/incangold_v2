@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useContext } from 'react'
+import { GameContext } from '../../../App'
 import QuestCard from './QuestCard'
 import HazardQuestCard from './HazardQuestCard'
 import TreasureQuestCard from '../TreasureQuestCard'
@@ -12,28 +13,30 @@ const components = {
   ArtifactQuestCard
 }
 
-const QuestBoard = ({ quest, questCycle, choicesReveal, turnStart, endCamp, endHazard, onePlayer, choice, leftRound, spare }) => {
-  const cards = quest.map((card, index) => {
-    const Component = components[card.card]
+const QuestBoard = () => {
+  const { state: { quest } } = useContext(GameContext)
+  
+  const cards = quest.sort((a,b) => a.questOrder > b.questOrder).map((card, index) => {
+    const Component = components[card.type]
 
     return(
-      <QuestCard key={ index } questCycle={ questCycle } onePlayer={ onePlayer } >
-        <Component card={ card } endCamp={ endCamp } endHazard={ endHazard } questCycle={ questCycle }/>
+      <QuestCard key={ index } >
+        <Component card={ card } />
       </QuestCard>
     )
   })
   return (
     <div className={ `flex flex-col items-center w-full text-center pt-4` }>
       <div>
-        <QuestCard questCycle={ questCycle } onePlayer={ onePlayer }>
-          <TopQuestCard choicesReveal={ choicesReveal } questCycle={ questCycle } turnStart={ turnStart } onePlayer={ onePlayer } choice={ choice } leftRound={ leftRound }/>
+        <QuestCard >
+          <TopQuestCard />
         </QuestCard>
         <div className="flex justify-center items-center">
-          <Tent score={ spare } isSpare={ true }/>
+          <Tent isSpare={ true }/>
         </div>
       </div>
       <div className="flex flex-col items-center w-full overflow-y-auto">
-        { cards.reverse() }
+        { cards }
       </div>
     </div>
   )

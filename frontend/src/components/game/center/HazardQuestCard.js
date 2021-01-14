@@ -36,7 +36,7 @@ const HazardQuestCard = ({ card, endCamp, endHazard }) => {
 
   return (
     <div className={`bg-black border-4 border-red-500 font-bold p-1 ${endCamp && 'font-light p-1 text-sm'} ${endHazard && 'p-4 text-xl'}`}>
-      { hazards[card.type] }
+      { hazards[card.hazardType] }
     </div>
   )
 }
