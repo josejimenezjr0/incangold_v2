@@ -51,7 +51,10 @@ const TopQuestCard = () => {
     [HAZARD]: hazard
   }
 
-  return (<div>{ stages[cycle] }</div>)
+  return (
+    <div className="text-center font-bold">
+      { stages[cycle] }
+    </div>)
 }
 
 export default TopQuestCard

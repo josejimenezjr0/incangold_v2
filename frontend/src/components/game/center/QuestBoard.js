@@ -16,7 +16,7 @@ const components = {
 const QuestBoard = () => {
   const { state: { quest, spare } } = useContext(GameContext)
   
-  const cards = quest.sort((a,b) => a.questOrder > b.questOrder ? 1 : -1).map((card, index) => {
+  const cards = quest.sort((a,b) => a.questOrder < b.questOrder ? 1 : -1).map((card, index) => {
     const Component = components[card.type]
 
     return(
@@ -28,9 +28,6 @@ const QuestBoard = () => {
   return (
     <div className={ `flex flex-col items-center w-full text-center pt-4` }>
       <div>
-        <QuestCard >
-          <TopQuestCard />
-        </QuestCard>
         {
           spare !== 0 &&
           <div className="flex justify-center items-center">

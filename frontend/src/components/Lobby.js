@@ -50,7 +50,7 @@ const Lobby = () => {
                 { `Players (${opponents.length + 1}/${size})`}
               </div>
             </div>
-            <div>
+            <div className="flex justify-center">
               { gamePlayers }
             </div>
             <TempleBoard />

@@ -7,7 +7,7 @@ const FLIP = 'flip'
 const CAMP = 'camp'
 const HAZARD = 'hazard'
 
-const QuestCard = ({ children, questCycle, onePlayer }) => {
+const QuestCard = ({ children, questCycle, round }) => {
   const hide = 'hidden'
   const waiting = 'bg-yellow-400'
   const choices = 'bg-blue-800'
@@ -25,7 +25,7 @@ const QuestCard = ({ children, questCycle, onePlayer }) => {
   }
 
   return (
-    <div className={`font-semibold text-sm p-1 mt-1 mb-4 rounded-lg ${cycle[questCycle]}`}>
+    <div className={`font-semibold text-sm ${round ? '' : 'mb-4 p-1 mt-1'} rounded-lg ${cycle[questCycle]}`}>
       { children }
     </div>
   )

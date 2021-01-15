@@ -53,14 +53,14 @@ const Round = ({ score, artifacts = [] }) => {
   const playerArtifacts = <div className="flex justify-center">
     {
       artifacts.map((card, index) => (
-        <QuestCard key={ index } >
+        <QuestCard key={ index } round={ true }>
           <ArtifactQuestCard card={ card } />
         </QuestCard>))
     }
   </div>
 
   return (
-    <div className="flex flex-col font-semibold p-1 text-center text-sm">
+    <div className="flex flex-col font-semibold p-1 text-center text-sm bg-blue-200">
       <p className={`${isScore && 'mb-1'}`}>Round</p>
       { scorePieces }
       { playerArtifacts }

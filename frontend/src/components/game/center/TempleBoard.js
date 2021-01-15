@@ -1,5 +1,7 @@
 import React from 'react'
 import TempleCard from './TempleCard'
+import TopQuestCard from './TopQuestCard'
+import QuestCard from './QuestCard'
 
 const TempleBoard = () => {
 
@@ -18,6 +20,9 @@ const TempleBoard = () => {
           <TempleCard position={ 2 } />
         </div>
       </div>
+      <QuestCard >
+        <TopQuestCard />
+      </QuestCard>
     </div>
   )
 }
