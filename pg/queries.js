@@ -27,15 +27,6 @@ const insertPlayer = async prePlayer => {
   return objSnakeToCamel(rows)
 }
 
-// const updatePlayer = async (player_uuid, update) => {
-//   const [rows] = await db('players')
-//     .where({ player_uuid: player_uuid })
-//     .update(update)
-
-//   console.log('rows: ', rows);
-//   return rows
-// }
-
 const updateGame = async (game_uuid, _rawUpdate) => {
   const rawUpdate = objCamelToSnake(_rawUpdate)
   const { deck, ...preUpdate } = rawUpdate
@@ -54,8 +45,8 @@ const updateGame = async (game_uuid, _rawUpdate) => {
 
 const updatePlayer = async (player_uuid, preUpdate) => {
   const update = objCamelToSnake(preUpdate)
-  console.log(`queries updatePlayer ${player_uuid} w/ update: ${JSON.stringify(update)}`);
-  // console.log(`queries updatePlayer`);
+  // console.log(`queries updatePlayer ${player_uuid} w/ update: ${JSON.stringify(update)}`);
+  console.log(`queries updatePlayer`);
   const [rows] = await db('players')
     .where({ player_uuid })
     .update(update)
@@ -74,20 +65,6 @@ const updateManyPlayers = async (preUpdate) => {
     .where({ player_uuid: player.player_uuid })
     .update(player)
   }))
-  // try {
-  //   await db.transaction(async trx => {
-  //     Promise.all(update.map(
-  //       async player => {
-  //         await trx('players')
-  //         .where({ player_uuid: player.player_uuid })
-  //         .update(player)
-  //       }
-  //     ))
-  //   }) 
-  //   console.log('updateAllPlayers - result: ', result);
-  // } catch (error) {
-  //   console.log('DB error: ', error);
-  // }
 }
 
 const selectGame = async (preFilter, value) => {

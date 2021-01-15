@@ -31,19 +31,19 @@ const calcPieces = score => {
 
 const Tent = ({ score, isSpare }) => {
   const scorePieces = calcPieces(score)
-    .map((piece, treasureIndex) => {
+    .flatMap((piece, treasureIndex) => {
       if(piece) {
         const Component = components[treasureIndex]
         return(
-          <div className="flex justify-center">
+          <div className="flex justify-center" key={`${treasureIndex}`}>
             {[...Array(piece)].map((_, index) => (
               <TreasurePiece key={`${treasureIndex} - ${index}`}>
-                <Component />
+                <Component key={`${treasureIndex} - ${index}`}/>
               </TreasurePiece>
             ))}
           </div>
         )
-      }
+      } else return []
   })
 
   const isScore = scorePieces.some(piece => piece !== 0)

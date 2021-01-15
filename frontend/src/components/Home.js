@@ -11,12 +11,10 @@ const Home = () => {
   const history = useHistory()
 
   useEffect(() => {
-    console.log('Home load game before state: ', state);
     dispatch(actionGenerators.loadGame())
   }, [])
 
   useEffect(() => {
-    console.log('Home useEffect state: ', state);
     state.playerUuid !== '' && history.push('/lobby')
   }, [state])
 
@@ -56,7 +54,6 @@ const Home = () => {
     dispatch(actionGenerators.makeJoin(makeJoinInfo))
     try {
       const res = await axios.post('http://localhost:4001/players', { makeJoinInfo })
-      console.log('res.data: ', res.data);
       // dispatch(actionGenerators.playerUuid(res.data.playerUuid))
       dispatch(actionGenerators.updateSave(res.data))
     } catch (error) {

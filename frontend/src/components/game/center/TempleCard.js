@@ -1,15 +1,27 @@
-import React from 'react'
+import React, { useContext } from 'react'
+import { GameContext } from '../../../App'
+import axios from 'axios'
 
-const ZERO = 'zero'
-const CAMP = 'camp'
-const HAZARD = 'hazard'
+const CAMP = 'Camp'
+const HAZARD = 'Hazard'
 
+const TempleCard = ({ position }) => {
+  const { state } = useContext(GameContext)
+  const { round, questCycle, opponents, size, playerUuid } = state
 
+  const roundStart = async () => {
+    try {
+      await axios.put(`http://localhost:4001/games/${playerUuid}`, { action: 'startRound' })
+    } catch (error) {
+      console.log('error: ', error);
+    }
+  }
 
-const TempleCard = ({ position, round, roundStart, questCycle, sizeWait }) => {
+  const sizeWait = opponents.length + 1 === size
   const flipped = round >= position
   const nextRound = round + 1 === position  
-  const activate = (nextRound && sizeWait) && (questCycle === ZERO || questCycle === CAMP || questCycle === HAZARD)
+
+  const activate = (nextRound && sizeWait && round === 0) || (nextRound && ((questCycle === CAMP) || (questCycle === HAZARD)))
 
   return (
     flipped ?

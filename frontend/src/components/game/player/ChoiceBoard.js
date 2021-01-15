@@ -4,29 +4,32 @@ import { GameContext } from '../../../App'
 import { actionGenerators } from '../../../redux'
 import axios from 'axios'
 
-const ZERO = 'zero'
-const FLIP = 'flip'
 const WAIT = 'wait'
-const REVEAL = 'reveal'
 
 const ChoiceBoard = () => {
   const { state, dispatch } = useContext(GameContext)
   const { leftRound, questCycle, onePlayer, choice, choiceMade, playerUuid } = state
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// should be moved
   const playerChoice = async () => {
     if(choiceMade === true) return
-    // testUpdatePlayer({ choiceMade: true })
     try {
-      const res = await axios.put(`http://localhost:4001/players/${playerUuid}`, { action: 'playerChoice', update: { choice } })
-      console.log('res.data: ', res.data);
-      dispatch(actionGenerators.updateSave(res.data))
+      if(onePlayer) {
+        try {
+          await axios.put(`http://localhost:4001/games/${playerUuid}`, { action: 'revealChoices', update: { choice, playerUuid } })
+        } catch (error) {
+          console.log('error: ', error);
+        }
+      } else {
+        const res = await axios.put(`http://localhost:4001/players/${playerUuid}`, { action: 'playerChoice', update: { choice } })
+        console.log('res.data: ', res.data);
+        dispatch(actionGenerators.updateSave(res.data))
+      }
     } catch (error) {
       console.log(error)
     }
   }
 
-  const active = !leftRound && ((questCycle === WAIT || questCycle === REVEAL) || (questCycle === FLIP && onePlayer))
+  const active = !leftRound && questCycle === WAIT
 
   return (
     <div className={`${ active ? '' : 'hidden'} flex justify-center items-center w-full `}>

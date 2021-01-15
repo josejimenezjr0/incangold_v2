@@ -1,8 +1,5 @@
 import { db2 } from './db'
 
-const ZERO = 'zero'
-const TORCH = 'Torch'
-
 const actionList = [
   'MAKE_JOIN',
   'LOAD_GAME',
@@ -24,8 +21,10 @@ export const initialState =
     name: '',
     playerUuid: '',
     opponents: [],
-    questCycle: ZERO,
+    questCycle: 'wait',
+    onePlayer: false,
     round: 0,
+    spare: 0,
     quest: [],
     deck: [],
     host: false,
@@ -34,7 +33,7 @@ export const initialState =
     playerArtifacts: [],
     leftRound: false,
     choiceMade: false,
-    choice: TORCH
+    choice: 'Torch'
   }
 const actions = actionList.reduce((list, action) => ({ ...list, [action]: action }), {})
 
@@ -60,20 +59,15 @@ const handlers = {
           return { ...acc, [cur.playerUuid]: { ...acc[cur.playerUuid], ...cur } }
         } else return { ...acc, [cur.playerUuid]: cur }
       }, {})
-      // console.log('opponentsMerge: ', opponentsMerge);
 
       const opponentsUpdate = Object.entries(opponentsMerge).map(([_, value]) => value)
-
-      // console.log('UPDATE_SAVE - opponentsUpdate: ', opponentsUpdate);
-      const finalUpdate = { ...state, ...restPayload, opponents: opponentsUpdate }
-      console.log('UPDATE_SAVE - finalUpdate: ', finalUpdate);
-      asyncHandlers.DB_SAVE(finalUpdate)
-      return finalUpdate
+      const update = { ...state, ...restPayload, opponents: opponentsUpdate }
+      asyncHandlers.DB_SAVE(update)
+      return update
     }
-    const defaultFinalUpdate = { ...state, ...payload }
-    console.log('defaultFinalUpdate: ', defaultFinalUpdate);
-    asyncHandlers.DB_SAVE(defaultFinalUpdate)
-    return defaultFinalUpdate
+    const update = { ...state, ...payload }
+    asyncHandlers.DB_SAVE(update)
+    return update
   },
   [actions.RESET_GAME]: () => initialState,
 }
@@ -107,19 +101,11 @@ const asyncHandlers = {
     await db2.localSave.update(1, { playerUuid: action.payload })
     return dispatch(action)
   },
-  // [actions.UPDATE_SAVE]: async (action, dispatch) => {
-  //   console.log('async UPDATE_SAVE');
-  //   // await db2.localSave.update(1, action.payload)
-  //   const updatedAction = { ...action, dispatch }
-  //   console.log('async UPDATE_SAVE - updatedAction: ', updatedAction);
-  //   return dispatch(updatedAction)
-  // },
   [actions.RESET_GAME]: async (action, dispatch) => {
     await db2.localSave.clear()
     return dispatch(action)
   },
   [actions.DB_SAVE]: async (payload) => {
-    console.log('async DB_SAVE - payload: ', payload);
     await db2.localSave.update(1, payload)
     return
   },
@@ -127,12 +113,10 @@ const asyncHandlers = {
 
 export const reducerAsyncMiddleware = dispatch => {
   return action => {
-    console.log('reducerAsyncMiddleware - action: ', action);
     return asyncHandlers.hasOwnProperty(action.type) ? asyncHandlers[action.type](action, dispatch) : dispatch(action)
   }
 }
 
 export const reducer = (state = initialState, action) => {
-  console.log('reducer - action: ', action);
   return handlers.hasOwnProperty(action.type) ? handlers[action.type](state, action) : state
 }

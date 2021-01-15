@@ -15,7 +15,6 @@ const TorchCard = () => {
     if(choiceMade) {
       try {
         const res = await axios.put(`http://localhost:4001/players/${playerUuid}`, { action: 'toggleChoice' })
-        console.log('res.data: ', res.data);
         dispatch(actionGenerators.updateSave(res.data))
       } catch (error) {
         console.log(error)

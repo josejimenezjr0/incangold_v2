@@ -7,7 +7,7 @@ import { GameContext } from '../../../App'
 
 const PlayerBoard = () => {
   const { state } = useContext(GameContext)
-  const { playerChoice, toggleChoice, questCycle, onePlayer, roundScore, playerArtifacts, totalScore, leftRound } = state
+  const { roundScore, playerArtifacts, totalScore } = state
   return (
     <div className="flex flex-col w-1/2 justify-between bg-blue-100 rounded-lg py-1 mt-2">
       <div className="flex justify-center w-full h-full pt-4">
@@ -23,7 +23,7 @@ const PlayerBoard = () => {
           </div>
         </div>
       </div>
-      <ChoiceBoard playerChoice={ playerChoice } toggleChoice={ toggleChoice } leftRound={ leftRound } questCycle={ questCycle } onePlayer={ onePlayer }/>
+      <ChoiceBoard />
     </div>
   )
 }

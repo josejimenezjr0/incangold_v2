@@ -1,9 +1,10 @@
 import React from 'react'
-import Artifacts from './Artifacts'
 import TreasurePiece from '../TreasurePiece'
 import TurquoiseTreasurePiece from '../TurquoiseTreasurePiece'
 import ObsidianTreasurePiece from '../ObsidianTreasurePiece'
 import GoldTreasurePiece from '../GoldTreasurePiece'
+import QuestCard from '../center/QuestCard'
+import ArtifactQuestCard from '../ArtifactQuestCard'
 
 const components = [
   GoldTreasurePiece,
@@ -30,29 +31,39 @@ const calcPieces = score => {
   return [ gold, obsidian, turquoise ]
 }
 
-const Round = ({ score , artifacts }) => {
+const Round = ({ score, artifacts = [] }) => {
   const scorePieces = calcPieces(score)
-    .map((piece, treasureIndex) => {
+    .flatMap((piece, treasureIndex) => {
       if(piece) {
         const Component = components[treasureIndex]
         return(
-          <div className="flex justify-center">
+          <div className="flex justify-center" key={`${treasureIndex}`}>
             {[...Array(piece)].map((_, index) => (
               <TreasurePiece key={`${treasureIndex} - ${index}`}>
-                <Component />
+                <Component key={`${treasureIndex} - ${index}`}/>
               </TreasurePiece>
             ))}
           </div>
         )
-      }
+      } else return []
   })
 
   const isScore = scorePieces.some(piece => piece !== 0)
+
+  const playerArtifacts = <div className="flex justify-center">
+    {
+      artifacts.map((card, index) => (
+        <QuestCard key={ index } >
+          <ArtifactQuestCard card={ card } />
+        </QuestCard>))
+    }
+  </div>
 
   return (
     <div className="flex flex-col font-semibold p-1 text-center text-sm">
       <p className={`${isScore && 'mb-1'}`}>Round</p>
       { scorePieces }
+      { playerArtifacts }
     </div>
   )
 }
